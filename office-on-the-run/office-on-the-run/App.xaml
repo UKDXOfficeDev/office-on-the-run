@@ -7,7 +7,9 @@
 
     <Application.Resources>
         <!-- Add your client id here. -->
-        <x:String x:Key="ida:ClientID">4bbc9358-799a-4929-8eac-68986abe7891</x:String>
+        <!--<x:String x:Key="ida:ClientID">4bbc9358-799a-4929-8eac-68986abe7891</x:String>-->
+        <x:String x:Key="ida:ClientID">5b9ae4a0-a24c-431c-865d-5bf7586586f8</x:String>
+        
         <x:String x:Key="ida:AADInstance">https://login.microsoftonline.com/</x:String>
         <!-- Add your developer tenant domain here. -->
         <x:String x:Key="ida:Domain">smichsoft.onmicrosoft.com</x:String>

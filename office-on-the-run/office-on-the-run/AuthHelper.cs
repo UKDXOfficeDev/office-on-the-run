@@ -22,10 +22,10 @@ namespace office_on_the_run
         static string AADInstance = App.Current.Resources["ida:AADInstance"].ToString();
 
         //Use the domain-specific authority when you're authenticating users from a single tenant only.
-        static string authority = AADInstance + tenant;
+        //static string authority = AADInstance + tenant;
 
         // Use "organizations" as your authority when you want the app to work on any Azure Tenant.
-        // static string authority = "organizations";
+        static string authority = "organizations";
 
         // To authenticate to the unified API, the client needs to know its App ID URI.
         public const string ResourceUrl = "https://graph.microsoft.com/";
