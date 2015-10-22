@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Security.Authentication.Web.Core;
@@ -26,17 +27,21 @@ namespace office_on_the_run
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private string token;
+
         public MainPage()
         {
             this.InitializeComponent();
             Loaded += OnLoaded;
         }
 
-        private async void OnLoaded(object sender, RoutedEventArgs e)
+        private async Task Authorise()
         {
+            token = await AuthenticationHelper.GetTokenHelperAsync();
+        }
 
-            var token = await AuthenticationHelper.GetTokenHelperAsync();
-
+        private async Task<string> GetGroupId()
+        {
             var http = new HttpClient();
             http.DefaultRequestHeaders.Add("Accept", "application/json");
             http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
@@ -46,36 +51,42 @@ namespace office_on_the_run
 
             var group = JsonConvert.DeserializeObject<RootObject>(ret);
 
-            var objID = group.value.First().objectId;
+            return group.value.First().objectId;
+        }
+
+        private async void PostGroupEvent(string groupId)
+        {
+            var startDate = DateTime.Now.ToString();
+            var endDate = startDate;
 
             var myStr = @"{
-  ""Subject"": ""Discuss the Calendar REST API"",
-  ""Body"": {
-                ""ContentType"": ""HTML"",
-    ""Content"": ""I think it will meet our requirements!""
-  },
-  ""Start"": ""2016-02-02T18:00:00-08:00"",
-  ""StartTimeZone"": ""Pacific Standard Time"",
-  ""End"": ""2016-02-02T19:00:00-08:00"",
-  ""EndTimeZone"": ""Pacific Standard Time""
-}";
+              ""Subject"": ""Jogging request?"",
+              ""Body"": {
+                            ""ContentType"": ""HTML"",
+                ""Content"": ""Fancy coming for a jog?""
+              },
+              ""Start"": ""2015-10-23T18:00:00-08:00"",
+              ""StartTimeZone"": ""Pacific Standard Time"",
+              ""End"": ""2015-10-23T19:00:00-08:00"",
+              ""EndTimeZone"": ""Pacific Standard Time""
+            }";
 
             var content = new HttpStringContent(myStr, Windows.Storage.Streams.UnicodeEncoding.Utf8, "application/json");
 
             var http2 = new HttpClient();
             http2.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
 
-            resp = await http2.PostAsync(new Uri($"https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{objID}')/events"), content);
-
-            //            https://graph.microsoft.com/beta/contoso.com/groups('c75831bd-fad3-4191-9a66-280a48528679')/events
-            //            Content - Type: application / json
-
-
-            //https://graph.microsoft.com/beta/fitnesscloud.co.uk/users?$filter=startswith(mailNickname,+'ad')
-
-                //var resp = await http.PostAsync();
-            }
+            var resp = await http2.PostAsync(new Uri($"https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{groupId}')/events"), content);
+            System.Diagnostics.Debug.Write(resp);
         }
+
+        private async void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            await Authorise();
+            var groupId = await GetGroupId();
+            PostGroupEvent(groupId);
+        }
+    }
 
     public class Value
     {
