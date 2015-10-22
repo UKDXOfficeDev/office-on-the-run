@@ -8,6 +8,30 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
+        <Grid.Resources>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextBlockStyle}">
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="FontWeight" Value="Bold" />
+            </Style>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+        </Grid.RowDefinitions>
+        <TextBlock HorizontalAlignment="Center">MS BAND DEMO</TextBlock>
+        <StackPanel Grid.Row="1" Orientation="Horizontal">
+            <Button Margin="4" Click="StartClick">START</Button>
+            <Button Margin="4" Click="AddClick">Add to Calendar</Button>
+        </StackPanel>
+        <Viewbox Grid.Row="2">
+            <TextBlock Grid.Row="1"
+                       Foreground="Red">&#x2665;</TextBlock>
+        </Viewbox>
+        <TextBlock Grid.Row="3" 
+                   x:Name="HeartRateDisplay">NO DATA</TextBlock>
     </Grid>
+
 </Page>

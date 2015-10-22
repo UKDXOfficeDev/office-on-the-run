@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Band;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +28,10 @@ namespace office_on_the_run
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private string token;
+
+        private string token, groupId;
+        private IBandClient _bandClient;
+        private IBandInfo _bandInfo;
 
         public MainPage()
         {
@@ -38,6 +42,36 @@ namespace office_on_the_run
         private async Task Authorise()
         {
             token = await AuthenticationHelper.GetTokenHelperAsync();
+        }
+
+        public async Task InitBand()
+        {
+            if (_bandClient != null)
+                return;
+
+            var bands = await BandClientManager.Instance.GetBandsAsync();
+            _bandInfo = bands.First();
+
+            _bandClient = await BandClientManager.Instance.ConnectAsync(_bandInfo);
+
+            var uc = _bandClient.SensorManager.HeartRate.GetCurrentUserConsent();
+            bool isConsented = false;
+            if (uc == UserConsent.NotSpecified)
+            {
+                isConsented = await _bandClient.SensorManager.HeartRate.RequestUserConsentAsync();
+            }
+
+            if (isConsented || uc == UserConsent.Granted)
+            {
+                _bandClient.SensorManager.HeartRate.ReadingChanged += async (obj, ev) =>
+                {
+                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                    {
+                        HeartRateDisplay.Text = ev.SensorReading.HeartRate.ToString();
+                    });
+                };
+                await _bandClient.SensorManager.HeartRate.StartReadingsAsync();
+            }
         }
 
         private async Task<string> GetGroupId()
@@ -54,7 +88,7 @@ namespace office_on_the_run
             return group.value.First().objectId;
         }
 
-        private async void PostGroupEvent(string groupId)
+        private async Task PostGroupEvent()
         {
             var startDate = DateTime.Now.ToString();
             var endDate = startDate;
@@ -80,11 +114,30 @@ namespace office_on_the_run
             System.Diagnostics.Debug.Write(resp);
         }
 
+
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            await Authorise();
-            var groupId = await GetGroupId();
-            PostGroupEvent(groupId);
+            if(groupId == null) 
+            {
+                await Authorise();
+                groupId = await GetGroupId();
+            }
+        }
+
+        private async void StartClick(object sender, RoutedEventArgs e)
+        {
+            await InitBand();
+        }
+
+        public async Task AddToCalendar()
+        {
+            // proxy function
+            await PostGroupEvent();
+        }
+
+        private async void AddClick(object sender, RoutedEventArgs e)
+        {
+            await AddToCalendar();
         }
     }
 
