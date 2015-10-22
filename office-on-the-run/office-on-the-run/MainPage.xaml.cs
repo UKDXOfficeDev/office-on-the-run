@@ -23,35 +23,94 @@ using Windows.Web.Http.Headers;
 
 namespace office_on_the_run
 {
+    public class CommonAPIData
+    {
+        public string accessToken { get; set; }
+        public string groupId { get; set; }
+    }
+
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainPage : Page
     {
 
-        private string token, groupId;
+        private CommonAPIData APIData;
         private IBandClient _bandClient;
         private IBandInfo _bandInfo;
 
         public MainPage()
         {
             this.InitializeComponent();
+
+            // add callback for on load trigger
             Loaded += OnLoaded;
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            // Run ONLY once
-            if (groupId == null)
+            // Restrict to run once only
+            if (APIData == null)
             {
-                await Authorise();
-                groupId = await GetGroupId();
+                APIData = new CommonAPIData();
+
+                // Access token must be initialised before using the API
+                await InitAcessToken();
+                // Now gather all the necessary variables by probing the API
+                await InitAPIData();
             }
         }
 
-        private async Task Authorise()
+        private async Task InitAcessToken()
         {
-            token = await AuthenticationHelper.GetTokenHelperAsync();
+            APIData.accessToken = await AuthenticationHelper.GetTokenHelperAsync();
+        }
+
+        private async Task InitAPIData()
+        {
+            // Request the outlook groups from our tenant and fetch the first ones ID
+            var response = await SendGetRequest("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups?$top");
+            var group = JsonConvert.DeserializeObject<RootObject>(response);
+            APIData.groupId = group.value.First().objectId;
+        }
+
+        private async Task SendPostRequest(string url,
+                                           string data,
+                                           string contentType = "application/json")
+        {
+            if (APIData.accessToken != null)
+            {
+                var content = new HttpStringContent(data, Windows.Storage.Streams.UnicodeEncoding.Utf8, contentType);
+                var http = new HttpClient();
+                http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", APIData.accessToken);
+                var response = await http.PostAsync(new Uri(url), content);
+
+                // do something with response code
+            }
+            else
+            {
+                throw new Exception("An access token must be present before calling the API");
+            }
+        }
+
+        private async Task<string> SendGetRequest(string url,
+                                          string access = "application/json")
+        {
+            HttpResponseMessage response = null;
+
+            if (APIData.accessToken != null)
+            {
+                var http = new HttpClient();
+                http.DefaultRequestHeaders.Add("Accept", access);
+                http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", APIData.accessToken);
+                response = await http.GetAsync(new Uri(url));
+            }
+            else
+            {
+                throw new Exception("An access token must be present before calling the API");
+            }
+
+            return response.Content.ReadAsStringAsync().GetResults();
         }
 
         public async Task InitBand()
@@ -80,7 +139,7 @@ namespace office_on_the_run
                         HeartRateDisplay.Text = ev.SensorReading.HeartRate.ToString();
 
                         /*
-                            Enter band code here.
+                            Enter band threshold code here.
                         */
                     });
                 };
@@ -88,73 +147,24 @@ namespace office_on_the_run
             }
         }
 
-        private async Task SendMessageToConversation()
+        private async Task CreateGroupEvent(string title, string content, DateTime start, DateTime end)
         {
-            var myStr = @"{
-                    ""Topic"": ""Band ALERT"",
-                    ""Threads"": [
-                        {
-                            ""Posts"": [
-                                {
-                                    ""Body"": 
-                                    {
-                                        ""ContentType"": ""HTML"",
-                                        ""Content"": ""Heart rate threshold exceeded!""
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }";
+            // Date format: 2015-10-23T18:00:00-08:00
 
-            var content = new HttpStringContent(myStr, Windows.Storage.Streams.UnicodeEncoding.Utf8, "application/json");
+            var eventString = "{" +
+                              "\"Subject\": \"" + title + "\"," +
+                              "\"Body\": {" +
+                                "\"ContentType\": \"HTML\"," +
+                                "\"Content\": \"" + content + "\"" +
+                              "}," +
+                              "\"Start\": \"2015-10-23T18:00:00-08:00\"," +
+                              "\"StartTimeZone\": \"Pacific Standard Time\"," +
+                              "\"End\": \"2015-10-23T18:00:00-08:00\"," +
+                              "\"EndTimeZone\": \"Pacific Standard Time\"" +
+                              "}";
 
-            var http = new HttpClient();
-            http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
-            var resp = await http.PostAsync(new Uri("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{groupId}')/Conversations"), content);
-            System.Diagnostics.Debug.Write(resp);
-        }
-
-        private async Task<string> GetGroupId()
-        {
-            var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("Accept", "application/json");
-            http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
-
-            var resp = await http.GetAsync(new Uri("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups?$top"));
-            var ret = await resp.Content.ReadAsStringAsync();
-
-            var group = JsonConvert.DeserializeObject<RootObject>(ret);
-
-            return group.value.First().objectId;
-        }
-
-        private async Task PostGroupEvent()
-        {
-            var startDate = DateTime.Now.ToString();
-            var endDate = startDate;
-
-            var myStr = @"{
-              ""Subject"": ""Jogging request?"",
-              ""Body"": {
-                            ""ContentType"": ""HTML"",
-                ""Content"": ""Fancy coming for a jog?""
-              },
-              ""Start"": ""2015-10-23T18:00:00-08:00"",
-              ""StartTimeZone"": ""Pacific Standard Time"",
-              ""End"": ""2015-10-23T19:00:00-08:00"",
-              ""EndTimeZone"": ""Pacific Standard Time""
-            }";
-
-            var content = new HttpStringContent(myStr, Windows.Storage.Streams.UnicodeEncoding.Utf8, "application/json");
-
-            var http2 = new HttpClient();
-            http2.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
-
-            var resp = await http2.PostAsync(new Uri($"https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{groupId}')/events"), content);
-            System.Diagnostics.Debug.Write(resp);
-
-            //await SendMessageToConversation();
+            await SendPostRequest("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('" + APIData.groupId + "')/events",
+                            eventString);
         }
 
         private async void StartClick(object sender, RoutedEventArgs e)
@@ -162,15 +172,15 @@ namespace office_on_the_run
             await InitBand();
         }
 
-        public async Task AddToCalendar()
+        private async void AddGroupEventClick(object sender, RoutedEventArgs e)
         {
-            // proxy function
-            await PostGroupEvent();
-        }
+            // Create a mock event
+            var start = DateTime.Now;
+            var end = start.Add(TimeSpan.FromHours(1));
+            var title = "Park 10km Run this weekend!";
+            var content = "Please join me in competeing in our local park run.";
 
-        private async void AddClick(object sender, RoutedEventArgs e)
-        {
-            await AddToCalendar();
+            await CreateGroupEvent(title, content, start, end);
         }
     }
 

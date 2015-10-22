@@ -24,7 +24,7 @@
         <TextBlock HorizontalAlignment="Center">MS BAND DEMO</TextBlock>
         <StackPanel Grid.Row="1" Orientation="Horizontal">
             <Button Margin="4" Click="StartClick">START</Button>
-            <Button Margin="4" Click="AddClick">Add to Calendar</Button>
+            <Button Margin="4" Click="AddGroupEventClick">Add to Calendar</Button>
         </StackPanel>
         <Viewbox Grid.Row="2">
             <TextBlock Grid.Row="1"
