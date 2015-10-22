@@ -39,6 +39,16 @@ namespace office_on_the_run
             Loaded += OnLoaded;
         }
 
+        private async void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // Run ONLY once
+            if (groupId == null)
+            {
+                await Authorise();
+                groupId = await GetGroupId();
+            }
+        }
+
         private async Task Authorise()
         {
             token = await AuthenticationHelper.GetTokenHelperAsync();
@@ -68,10 +78,41 @@ namespace office_on_the_run
                     await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                     {
                         HeartRateDisplay.Text = ev.SensorReading.HeartRate.ToString();
+
+                        /*
+                            Enter band code here.
+                        */
                     });
                 };
                 await _bandClient.SensorManager.HeartRate.StartReadingsAsync();
             }
+        }
+
+        private async Task SendMessageToConversation()
+        {
+            var myStr = @"{
+                    ""Topic"": ""Band ALERT"",
+                    ""Threads"": [
+                        {
+                            ""Posts"": [
+                                {
+                                    ""Body"": 
+                                    {
+                                        ""ContentType"": ""HTML"",
+                                        ""Content"": ""Heart rate threshold exceeded!""
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }";
+
+            var content = new HttpStringContent(myStr, Windows.Storage.Streams.UnicodeEncoding.Utf8, "application/json");
+
+            var http = new HttpClient();
+            http.DefaultRequestHeaders.Authorization = new HttpCredentialsHeaderValue("Bearer", token);
+            var resp = await http.PostAsync(new Uri("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{groupId}')/Conversations"), content);
+            System.Diagnostics.Debug.Write(resp);
         }
 
         private async Task<string> GetGroupId()
@@ -112,16 +153,8 @@ namespace office_on_the_run
 
             var resp = await http2.PostAsync(new Uri($"https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('{groupId}')/events"), content);
             System.Diagnostics.Debug.Write(resp);
-        }
 
-
-        private async void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            if(groupId == null) 
-            {
-                await Authorise();
-                groupId = await GetGroupId();
-            }
+            //await SendMessageToConversation();
         }
 
         private async void StartClick(object sender, RoutedEventArgs e)
