@@ -25,6 +25,7 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal">
             <Button Margin="4" Click="StartClick">START</Button>
             <Button Margin="4" Click="AddGroupEventClick">Add to Calendar</Button>
+            <Button Margin="4" Click="AddGroupConvoClick" Content="Create Convo"/>
         </StackPanel>
         <Viewbox Grid.Row="2">
             <TextBlock Grid.Row="1"

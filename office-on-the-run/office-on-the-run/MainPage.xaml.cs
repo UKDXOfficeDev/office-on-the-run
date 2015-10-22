@@ -27,6 +27,7 @@ namespace office_on_the_run
     {
         public string accessToken { get; set; }
         public string groupId { get; set; }
+        public string tenant { get; set; }
     }
 
     /// <summary>
@@ -72,6 +73,7 @@ namespace office_on_the_run
             var response = await SendGetRequest("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups?$top");
             var group = JsonConvert.DeserializeObject<RootObject>(response);
             APIData.groupId = group.value.First().objectId;
+            APIData.tenant = "dxdev01.onmicrosoft.com";
         }
 
         private async Task SendPostRequest(string url,
@@ -163,8 +165,30 @@ namespace office_on_the_run
                               "\"EndTimeZone\": \"Pacific Standard Time\"" +
                               "}";
 
-            await SendPostRequest("https://graph.microsoft.com/beta/dxdev01.onmicrosoft.com/groups('" + APIData.groupId + "')/events",
+            await SendPostRequest("https://graph.microsoft.com/beta/" + APIData.tenant + "/groups('" + APIData.groupId + "')/events",
                             eventString);
+        }
+
+        private async Task CreateGroupConversationMessage(string topic, string content)
+        {
+            var convoString = "{" +
+                               "\"Topic\": \"" + topic + "\"," +
+                               "\"Threads\": [" +
+                                                "{" +
+                                                    "\"Posts\": [" +
+                                                        "{" +
+                                                        "\"Body\": {" +
+                                                            "\"ContentType\": \"HTML\"," +
+                                                            "\"Content\": \"" + content + "\"" +
+                                                            "}" +
+                                                        "}" +
+                                                        "]" +
+                                                "}" +
+                                            "]" +
+                            "}";
+
+            await SendPostRequest("https://graph.microsoft.com/beta/" + APIData.tenant + "/groups('" + APIData.accessToken + "')/conversations",
+                               convoString);
         }
 
         private async void StartClick(object sender, RoutedEventArgs e)
@@ -181,6 +205,15 @@ namespace office_on_the_run
             var content = "Please join me in competeing in our local park run.";
 
             await CreateGroupEvent(title, content, start, end);
+        }
+
+        private async void AddGroupConvoClick(object sender, RoutedEventArgs e)
+        {
+            var thread = "Super joggers";
+            var content = "I've been running chaps!";
+
+            // Doesn't create a conversation currently
+            await CreateGroupConversationMessage(thread, content);
         }
     }
 
