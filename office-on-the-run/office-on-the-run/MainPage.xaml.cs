@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Security.Authentication.Web.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -25,6 +26,12 @@ namespace office_on_the_run
         public MainPage()
         {
             this.InitializeComponent();
+            Loaded += OnLoaded;
+        }
+
+        private async void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            var res = await AuthenticationHelper.GetTokenHelperAsync();
         }
     }
 }

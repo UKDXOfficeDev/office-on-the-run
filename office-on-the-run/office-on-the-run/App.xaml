@@ -5,4 +5,13 @@
     xmlns:local="using:office_on_the_run"
     RequestedTheme="Light">
 
+    <Application.Resources>
+        <!-- Add your client id here. -->
+        <x:String x:Key="ida:ClientID">4bbc9358-799a-4929-8eac-68986abe7891</x:String>
+        <x:String x:Key="ida:AADInstance">https://login.microsoftonline.com/</x:String>
+        <!-- Add your developer tenant domain here. -->
+        <x:String x:Key="ida:Domain">smichsoft.onmicrosoft.com</x:String>
+
+    </Application.Resources>
+
 </Application>
